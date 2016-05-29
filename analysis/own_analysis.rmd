@@ -49,7 +49,7 @@ The dataset will be the all trips originating from Midtown boroughs, and ending 
 * JFK (JFK): 2056
 * Newark (EWR): 2167
 
-As the question is interested in weekend getaways, the datasets shall be filtered only for Fridays, and grouped by the pickup hour.
+As the question is interested in weekend getaways, the datasets shall be filtered only for Fridays, and then eventually grouped by the pickup hour.
 
 The caveat for this analysis is as the Uber trips do not have the destination latitude/longitude, they will not be part of the dataset.
 
@@ -106,10 +106,6 @@ order by airport_code, hour;
 
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
 
-total_travel_time_query = "SELECT * from nyct2010 limit 10;"
-total_travel_time_data <- query(total_travel_time_query)
-
-
 ```
 
 
@@ -131,8 +127,7 @@ The ideal timeslot is the time when there are a lot of people in taxis. For this
 
 **Question**
 
-For the same game as in question two, you would like to place ads strategically across the manhattan city blocks with the highest amount of cab traffic throughout the day. Find
-the top 5 city blocks (assume a geohash level 6 grid of 0.6km x 1.2km per city block) that you should be placing your ads in.
+For the same game as in question two, you would like to place ads strategically across the manhattan city blocks with the highest amount of cab traffic throughout the day. Find the top 5 city blocks (assume a geohash level 6 grid of 0.6km x 1.2km per city block) that you should be placing your ads in.
 
 **Answer**
 
@@ -165,8 +160,6 @@ Based on your analysis, how much sooner or later would you start your commute fo
 For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant.
 
 1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM.
-
-
 
 2. Similar to case 1, but the destination is Midtown, origin from Downtown, and the relevant timeslot is 7PM to 8PM instead.
 
