@@ -56,7 +56,7 @@ The caveat for this analysis is as the Uber trips do not have the destination la
 ```
 -- Step 1. Find all the trips ending in LGA, JFK, or EWR
 
-CREATE TABLE trips_to_airport as
+CREATE TABLE airport_trips AS
 SELECT
   id,
   cab_type_id,
@@ -83,10 +83,7 @@ SELECT
     THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
   END AS duration_in_minutes
 FROM trips
-WHERE dropoff_nyct2010_gid IN (1840, 2056, 2167)
-      and EXTRACT(DOW FROM pickup_datetime) = 5
-      and trips.pickup_longitude is not NULL
-      and trips.pickup_latitude is not NULL;
+WHERE dropoff_nyct2010_gid IN (1840, 2056, 2167);
       
 -- STEP 2. Find only those originating from Midtown, and then get mean and median
 
