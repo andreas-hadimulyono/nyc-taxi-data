@@ -107,7 +107,6 @@ order by airport_code, hour;
 
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
 
-```
 
 
 ### 2. BEST TIMESLOT FOR ADS
