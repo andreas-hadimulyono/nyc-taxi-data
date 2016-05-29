@@ -1,0 +1,179 @@
+---
+title: "NYC Taxi Data"
+author: "Andreas Hadimulyono"
+output: html_document
+---
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+library(ggplot2)
+library(ggmap)
+library(dplyr)
+library(reshape2)
+library(zoo)
+library(scales)
+library(extrafont)
+library(grid)
+library(RPostgreSQL)
+library(rgdal)
+library(maptools)
+gpclibPermit()
+source("helpers.R")
+```
+
+
+### 1. GOING TO AIRPORT
+
+**Question**
+
+Assuming your office is midtown, and you will like to fly to las vegas for the weekend.
+
+Using the following assumptions:
+
+* that both airports will have the same checkin and security queues, (you need to arrive an hour before departure)
+
+* and both will have equal flight times to Las Vegas
+
+Evaluate the following:
+
+* which airport will allow you to minimize total travel time (the time you leave your office to the time you land in las vegas)
+
+* what is the optimum time for departure assuming that you can leave New York after 9am on Friday.
+
+**Answer**
+
+There are three airports in New York: La Guardia, JFK, and Newark. In order to answer the question, we must first prepare the dataset for the analysis.
+
+The dataset will be the all trips originating from Midtown boroughs, and ending in one of the airports, which will be indicated by the gid
+
+* La Guardia (LGA): 1840
+* JFK (JFK): 2056
+* Newark (EWR): 2167
+
+As the question is interested in weekend getaways, the datasets shall be filtered only for Fridays, and grouped by the pickup hour.
+
+The caveat for this analysis is as the Uber trips do not have the destination latitude/longitude, they will not be part of the dataset.
+
+```
+-- Step 1. Find all the trips ending in LGA, JFK, or EWR
+
+CREATE TABLE trips_to_airport as
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  CASE
+    WHEN dropoff_nyct2010_gid = 1840 THEN 'LGA'
+    WHEN dropoff_nyct2010_gid = 2056 THEN 'JFK'
+    WHEN dropoff_nyct2010_gid = 2167 THEN 'EWR'
+  END AS airport_code,
+  EXTRACT(YEAR FROM pickup_datetime) AS year,
+  EXTRACT(DOW FROM pickup_datetime) AS dow,
+  EXTRACT(HOUR FROM pickup_datetime) AS hour,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes
+FROM trips
+WHERE dropoff_nyct2010_gid IN (1840, 2056, 2167)
+      and EXTRACT(DOW FROM pickup_datetime) = 5
+      and trips.pickup_longitude is not NULL
+      and trips.pickup_latitude is not NULL;
+      
+-- STEP 2. Find only those originating from Midtown, and then get mean and median
+
+CREATE TABLE midtown_airports_summary
+select airport_code,
+       hour,
+       COUNT(*) AS trips_count,
+       AVG(duration_in_minutes) AS mean,
+       median(duration_in_minutes::NUMERIC) as median
+from q1_step1 q1s1
+      join nyct2010 ct on q1s1.pickup_nyct2010_gid = ct.gid
+where ct.ntaname = 'Midtown-Midtown South'
+group by airport_code, hour
+order by airport_code, hour;
+
+```
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
+
+total_travel_time_query = "SELECT * from nyct2010 limit 10;"
+total_travel_time_data <- query(total_travel_time_query)
+
+
+```
+
+
+### 2. BEST TIMESLOT FOR ADS
+
+**Question**
+
+You have a mobile gaming startup and based on your research, your prime target audience are people who commute in cabs. You will like to place talk radio ads on radio stations that cab drivers are likely to tune in to in manhattan, what are best timeslots for you to place these ads?
+
+**Answer**
+
+The ideal timeslot is the time when there are a lot of people in taxis. For this question, we shall use the pickup and dropoff time as a proxy of the number of people that are inside taxis within a timeslot. Thus the dataset for this analysis shall be the all trips originating from and to all the boroughs in Manhattan, grouped by their time. Since we are only interested in the number of people in taxis and not the type (pickup or dropoff) we can add the trip count for both types (pickup and dropoff). We can include Uber rides for this dataset as the dropoff point is not relevant to the question.
+
+
+```
+```
+
+### 3. TOP 5 CITY BLOCKS IN MANHATTAN
+
+**Question**
+
+For the same game as in question two, you would like to place ads strategically across the manhattan city blocks with the highest amount of cab traffic throughout the day. Find
+the top 5 city blocks (assume a geohash level 6 grid of 0.6km x 1.2km per city block) that you should be placing your ads in.
+
+**Answer**
+
+The analysis for this question is similar to question 2, but instead of grouping by the pickup/dropoff time, we shall group the taxi rides by the first six letters of geohash codes, and then pick the top 5 number of taxi rides from the result.
+
+```
+```
+
+
+### 4. WEATHER FORECASTS
+
+**Question**
+
+The weather forecast says it is going to rain on most of the days in the next couple of months (June or July). You want to adjust your timings to the following commute plans based on the past trends on how the rain has an impact on average travel times for 
+
+1. Cab to work (Downtown area) to report to work at 10 AM in the morning on Weekdays
+
+2. Cab in the evenings to reach home (Midtown) between 7 PM 8 PM 
+
+3. Saturday night trip to movies or shopping centers (in Downtown area); Pick a time when the movie starts.
+
+4. Sunday visit to the parents home (situated in one of the suburbs) for lunch (@ 12PM)
+
+5. A postlunch visit to your friends living a few miles away from your parents.
+
+Based on your analysis, how much sooner or later would you start your commute for each of the above when it is raining?
+
+**Answer**
+
+For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant.
+
+1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM.
+
+
+
+2. Similar to case 1, but the destination is Midtown, origin from Downtown, and the relevant timeslot is 7PM to 8PM instead.
+
+3. The movie starts at 7PM and we are leaving from home, so for this case we shall compare those with origin Midtown, destination Downtown.
+
+4. We shall pick a suburb Bay Ridge, Brooklyn as the destination this time, and the relevant timeslot is 11AM - 12PM.
+
+5. We shall pick the friend's place as Crown's Heights suburb, again in Broklyn. We shall leave the parent's place at 2PM.
+
+
