@@ -84,18 +84,22 @@ SELECT
   END AS duration_in_minutes
 FROM trips
 WHERE dropoff_nyct2010_gid IN (1840, 2056, 2167);
-      
--- STEP 2. Find only those originating from Midtown, and then get mean and median
 
-CREATE TABLE midtown_airports_summary
+CREATE INDEX index_airport_trips ON airport_trips (pickup_nyct2010_gid);
+CREATE INDEX index_airport_trips_dow ON airport_trips (dow);
+      
+-- STEP 2. Find only Friday trips originating from Midtown, and then get count, mean and median
+
+CREATE TABLE midtown_to_airports_friday_summary_hourly AS
 select airport_code,
        hour,
        COUNT(*) AS trips_count,
        AVG(duration_in_minutes) AS mean,
        median(duration_in_minutes::NUMERIC) as median
-from q1_step1 q1s1
-      join nyct2010 ct on q1s1.pickup_nyct2010_gid = ct.gid
-where ct.ntaname = 'Midtown-Midtown South'
+from airport_trips at
+      join nyct2010 ct on at.pickup_nyct2010_gid = ct.gid
+                          and (ct.ntaname = 'Midtown-Midtown South' or ct.ntaname = 'Turtle Bay-East Midtown')
+where at.dow = 5
 group by airport_code, hour
 order by airport_code, hour;
 
@@ -156,7 +160,7 @@ Based on your analysis, how much sooner or later would you start your commute fo
 
 For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant.
 
-1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM.
+1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM. Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'
 
 2. Similar to case 1, but the destination is Midtown, origin from Downtown, and the relevant timeslot is 7PM to 8PM instead.
 
