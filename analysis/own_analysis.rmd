@@ -18,6 +18,31 @@ library(rgdal)
 library(maptools)
 gpclibPermit()
 source("helpers.R")
+
+# helper for t-test
+# m1, m2: the sample means
+# s1, s2: the sample standard deviations
+# n1, n2: the same sizes
+# m0: the null value for the difference in means to be tested for. Default is 0. 
+# equal.variance: whether or not to assume equal variance. Default is FALSE. 
+t.test2 <- function(m1,m2,s1,s2,n1,n2,m0=0,equal.variance=FALSE)
+{
+    if( equal.variance==FALSE ) 
+    {
+        se <- sqrt( (s1^2/n1) + (s2^2/n2) )
+        # welch-satterthwaite df
+        df <- ( (s1^2/n1 + s2^2/n2)^2 )/( (s1^2/n1)^2/(n1-1) + (s2^2/n2)^2/(n2-1) )
+    } else
+    {
+        # pooled standard deviation, scaled by the sample sizes
+        se <- sqrt( (1/n1 + 1/n2) * ((n1-1)*s1^2 + (n2-1)*s2^2)/(n1+n2-2) ) 
+        df <- n1+n2-2
+    }      
+    t <- (m1-m2-m0)/se 
+    dat <- c(m1-m2, se, t, 2*pt(-abs(t),df))    
+    names(dat) <- c("Difference of means", "Std Error", "t", "p-value")
+    return(dat) 
+}
 ```
 
 
@@ -166,12 +191,12 @@ SELECT
     WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
     THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
   END AS duration_in_minutes,
-  ST_GeoHash(ST_SetSRID(ST_MakePoint(pickup_longitude,pickup_latitude),4326)) AS pickup_geohash
+  substring(ST_GeoHash(ST_SetSRID(ST_MakePoint(pickup_longitude,pickup_latitude),4326)),1,6) AS pickup_geohash
 FROM trips
 WHERE pickup_nyct2010_gid IN (select gid from manhattan_gids);
 
 CREATE INDEX index_trips_from_manhattan_with_geohash_hour ON trips_from_manhattan_with_geohash_test(hour);
-CREATE INDEX index_trips_from_manhattan_with_geohash_geohash ON trips_from_manhattan_with_geohash_test(geohash text_pattern_ops);
+CREATE INDEX index_trips_from_manhattan_with_geohash_geohash ON trips_from_manhattan_with_geohash_test(pickup_geohash text_pattern_ops);
 
 -- STEP 2. Group by the trips from Manhattan by the pickup hour, and get the count
 
@@ -179,10 +204,6 @@ CREATE TABLE manhattan_pickup_summary_hourly_test AS
 SELECT hour, COUNT(*) as pickup_count
 FROM trips_from_manhattan_with_geohash_test
 GROUP BY hour;
-
--- STEP 3. Group by the trips from Manhattan by the first six letters of the pickup_geohash, and get the count
-
-
 
 ```
 
@@ -197,6 +218,15 @@ For the same game as in question two, you would like to place ads strategically 
 The analysis for this question is similar to question 2, but instead of grouping by the pickup/dropoff time, we shall group the taxi rides by the first six letters of geohash codes, and then pick the top 5 number of taxi rides from the result.
 
 ```
+
+-- STEP 1. Group by the trips from Manhattan by the first six letters of the pickup_geohash, and get the count
+
+CREATE TABLE manhattan_pickup_summary_geohash_test AS
+SELECT substring(pickup_geohash, 1, 6) as pickup_geohash_prefix, COUNT(*) as pickup_count
+FROM trips_from_manhattan_with_geohash_test
+GROUP BY pickup_geohash_prefix;
+
+
 ```
 
 
@@ -220,7 +250,7 @@ Based on your analysis, how much sooner or later would you start your commute fo
 
 **Answer**
 
-For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant.
+For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant. The view `central_park_weather_observation` precipitation column is already converting the unit from raw data to inches.
 
 1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM. Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'.
 
@@ -260,6 +290,63 @@ SELECT
 FROM trips
 WHERE trips.pickup_nyct2010_gid IN (select gid from midtown_gids)
       AND trips.dropoff_nyct2010_gid IN (select gid from downtown_gids);
+
+CREATE INDEX index_trips_from_midtown_to_downtown_dow ON trips_from_midtown_to_downtown_test(dow);
+CREATE INDEX index_trips_from_midtown_to_downtown_dow ON trips_from_midtown_to_downtown_test(hour);
+
+      
+STEP 2. Filter it further to just weekdays with dropoff hour 9, and get the date to be joined later
+
+CREATE TABLE trips_from_midtown_to_downtown_weekday_9 AS
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  year,
+  dow,
+  hour,
+  date(dropoff_datetime) AS pickup_date,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes
+FROM trips_from_midtown_to_downtown_test
+WHERE hour = 9 AND dow IN (1,2,3,4,5);
+
+CREATE INDEX index_trips_from_midtown_to_downtown_weekday_9_pickup_date ON trips_from_midtown_to_downtown_weekday_9(pickup_date);
+
+STEP 3. JOIN with central_park_weather_observation to find rainy/sunny days. 0 = rain, 1 = sunny
+
+CREATE TABLE trips_from_midtown_to_downtown_weekday_9_weather AS 
+SELECT 
+    t.pickup_date,
+    t.duration_in_minutes,
+    CASE
+        WHEN w.precipitation >= 0.0039 AND w.precipitation <= 0.35 THEN 0
+        ELSE 1
+    END AS weather_indicator
+FROM trips_from_midtown_to_downtown_weekday_9 t
+    INNER JOIN central_park_weather_observation w ON t.pickup_date = w.date;
+
+STEP 4. Aggregate to find mean and SD of trip duration grouped by weather
+
+SELECT 
+    weather_indicator,
+    COUNT(*) AS trip_count,
+    AVG(duration_in_minutes) AS mean,
+    stddev(duration_in_minutes) AS sd
+FROM trips_from_midtown_to_downtown_weekday_9_weather
+GROUP BY weather_indicator;
+
       
 ```
 
@@ -268,7 +355,7 @@ WHERE trips.pickup_nyct2010_gid IN (select gid from midtown_gids)
 
 ```
 
-STEP 1. Similar to Case 1, but reverse the where clause.
+STEP 1. Similar to Case 1, but from Downtown to Midtown instead.
 
 CREATE TABLE trips_from_downtown_to_midtown_test AS
 WITH midtown_gids as (
