@@ -170,8 +170,17 @@ SELECT
 FROM trips
 WHERE pickup_nyct2010_gid IN (select gid from manhattan_gids);
 
+CREATE INDEX index_trips_from_manhattan_with_geohash_hour ON trips_from_manhattan_with_geohash_test(hour);
+CREATE INDEX index_trips_from_manhattan_with_geohash_geohash ON trips_from_manhattan_with_geohash_test(geohash text_pattern_ops);
+
 -- STEP 2. Group by the trips from Manhattan by the pickup hour, and get the count
 
+CREATE TABLE manhattan_pickup_summary_hourly_test AS
+SELECT hour, COUNT(*) as pickup_count
+FROM trips_from_manhattan_with_geohash_test
+GROUP BY hour;
+
+-- STEP 3. Group by the trips from Manhattan by the first six letters of the pickup_geohash, and get the count
 
 
 
@@ -213,7 +222,7 @@ Based on your analysis, how much sooner or later would you start your commute fo
 
 For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant.
 
-1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM. Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'
+1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM. Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'.
 
 ```
 STEP 1. All trips from Midtown to Downtown
@@ -261,14 +270,140 @@ WHERE trips.pickup_nyct2010_gid IN (select gid from midtown_gids)
 
 STEP 1. Similar to Case 1, but reverse the where clause.
 
+CREATE TABLE trips_from_downtown_to_midtown_test AS
+WITH midtown_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Midtown-Midtown South' or ntaname = 'Turtle Bay-East Midtown'
+), downtown_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Battery Park City-Lower Manhattan' or ntaname = 'Lower East Side'
+)
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  EXTRACT(YEAR FROM pickup_datetime) AS year,
+  EXTRACT(DOW FROM pickup_datetime) AS dow,
+  EXTRACT(HOUR FROM pickup_datetime) AS hour,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes
+FROM trips
+WHERE trips.pickup_nyct2010_gid IN (select gid from downtown_gids)
+      AND trips.dropoff_nyct2010_gid IN (select gid from midtown_gids);
 
 
 ```
 
-3. The movie starts at 7PM and we are leaving from home, so for this case we shall compare those with origin Midtown, destination Downtown.
+3. The movie starts at 7PM and we are leaving from home, so for this case we shall compare those with origin Midtown, destination Downtown. Similar to case 1, but this time we are looking at all days instead of just week days.
+
+```
+
+STEP 1. Using Step 1's trips_from_midtown_to_downtown_test table, get only those in the required timeslot.
+
+
+
+
+```
+
 
 4. We shall pick a suburb Bay Ridge, Brooklyn as the destination this time, and the relevant timeslot is 11AM - 12PM.
 
-5. We shall pick the friend's place as Crown's Heights suburb, again in Broklyn. We shall leave the parent's place at 2PM.
+
+```
+
+STEP 1. Find all trips from Midtown (home) to Bay Ridge (Parent's home).
+
+CREATE TABLE trips_from_midtown_to_bayridge_test AS
+WITH midtown_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Midtown-Midtown South' or ntaname = 'Turtle Bay-East Midtown'
+), bayridge_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Bay Ridge'
+)
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  EXTRACT(YEAR FROM pickup_datetime) AS year,
+  EXTRACT(DOW FROM pickup_datetime) AS dow,
+  EXTRACT(HOUR FROM pickup_datetime) AS hour,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes
+FROM trips
+WHERE trips.pickup_nyct2010_gid IN (select gid from midtown_gids)
+      AND trips.dropoff_nyct2010_gid IN (select gid from bayridge_gids);
+
+
+```
+
+
+5. We shall pick the friend's place as Crown's Heights NOrth suburb, again in Broklyn. We shall leave the parent's place at 2PM.
+
+```
+
+STEP 1. Find all trips from Bay Ridge to Crown's Heights
+
+CREATE TABLE trips_from_bayridge_to_crownheights_test AS
+WITH crownheights_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Crown Heights North'
+), bayridge_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Bay Ridge'
+)
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  EXTRACT(YEAR FROM pickup_datetime) AS year,
+  EXTRACT(DOW FROM pickup_datetime) AS dow,
+  EXTRACT(HOUR FROM pickup_datetime) AS hour,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes
+FROM trips
+WHERE trips.pickup_nyct2010_gid IN (select gid from bayridge_gids)
+      AND trips.dropoff_nyct2010_gid IN (select gid from crownheights_gids);
+
+```
 
 
