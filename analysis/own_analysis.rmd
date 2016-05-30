@@ -219,12 +219,13 @@ The analysis for this question is similar to question 2, but instead of grouping
 
 ```
 
--- STEP 1. Group by the trips from Manhattan by the first six letters of the pickup_geohash, and get the count
+-- STEP 1. Group by the trips from Manhattan by pickup_geohash, and get the count.
 
 CREATE TABLE manhattan_pickup_summary_geohash_test AS
-SELECT substring(pickup_geohash, 1, 6) as pickup_geohash_prefix, COUNT(*) as pickup_count
+SELECT pickup_geohash, 
+        COUNT(*) as pickup_count
 FROM trips_from_manhattan_with_geohash_test
-GROUP BY pickup_geohash_prefix;
+GROUP BY pickup_geohash;
 
 
 ```
