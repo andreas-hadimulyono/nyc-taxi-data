@@ -88,7 +88,21 @@ WHERE dropoff_nyct2010_gid IN (1840, 2056, 2167);
 CREATE INDEX index_airport_trips ON airport_trips (pickup_nyct2010_gid);
 CREATE INDEX index_airport_trips_dow ON airport_trips (dow);
       
--- STEP 2. Find only Friday trips originating from Midtown, and then get count, mean and median
+-- STEP 2. Find only Friday trips from airport_trips, then for each of the airport, find the count of trips, mean of trip duration, and median of trip duration.
+
+CREATE TABLE midtown_to_airports_friday_summary_daily AS
+select airport_code,
+       COUNT(*) AS trips_count,
+       AVG(duration_in_minutes) AS mean,
+       median(duration_in_minutes::NUMERIC) as median
+from airport_trips at
+      join nyct2010 ct on at.pickup_nyct2010_gid = ct.gid
+                          and (ct.ntaname = 'Midtown-Midtown South' or ct.ntaname = 'Turtle Bay-East Midtown')
+where at.dow = 5
+group by airport_code
+order by airport_code;
+
+-- STEP 3. Find only Friday trips from airport_trips, then for each of the airport, group the trips by the hour, and then get count of trips, mean of trip duration and median of trip duration
 
 CREATE TABLE midtown_to_airports_friday_summary_hourly AS
 select airport_code,
@@ -105,6 +119,9 @@ order by airport_code, hour;
 
 ```
 
+
+
+
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
 ```
 
@@ -117,13 +134,13 @@ You have a mobile gaming startup and based on your research, your prime target a
 
 **Answer**
 
-The ideal timeslot is the time when there are a lot of people in taxis. For this question, we shall use the pickup and dropoff time as a proxy of the number of people that are inside taxis within a timeslot. Thus the dataset for this analysis shall be the all trips originating from and to all the boroughs in Manhattan, grouped by their time. Since we are only interested in the number of people in taxis and not the type (pickup or dropoff) we can add the trip count for both types (pickup and dropoff). We can include Uber rides for this dataset as the dropoff point is not relevant to the question.
+The ideal timeslot is the time when there are a lot of people in taxis. For this question, we shall use the pickup time as a proxy of the number of people that are in Manhattan within a timeslot. Thus the dataset for this analysis shall be the all trips originating from all the boroughs in Manhattan, grouped by their time. We can include Uber rides for this dataset as we're only looking at the pickup location.
 
 ```
 
--- Step 1. Find all the trips originating or ending in Manhattan
+-- Step 1. Find all the trips originating in Manhattan
 
-CREATE TABLE trips_to_from_manhattan_with_geohash AS
+CREATE TABLE trips_from_manhattan_with_geohash_test AS
 WITH manhattan_gids as (
   select distinct gid
   from nyct2010
@@ -149,11 +166,15 @@ SELECT
     WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
     THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
   END AS duration_in_minutes,
-  ST_GeoHash(ST_SetSRID(ST_MakePoint(pickup_longitude,pickup_latitude),4326)) AS pickup_geohash,
-  ST_GeoHash(ST_SetSRID(ST_MakePoint(dropoff_longitude,dropoff_latitude),4326)) AS dropoff_geohash
+  ST_GeoHash(ST_SetSRID(ST_MakePoint(pickup_longitude,pickup_latitude),4326)) AS pickup_geohash
 FROM trips
-WHERE pickup_nyct2010_gid IN (select gid from manhattan_gids)
-  OR dropoff_nyct2010_gid IN (select gid from manhattan_gids);
+WHERE pickup_nyct2010_gid IN (select gid from manhattan_gids);
+
+-- STEP 2. Group by the trips from Manhattan by the pickup hour, and get the count
+
+
+
+
 ```
 
 ### 3. TOP 5 CITY BLOCKS IN MANHATTAN
@@ -194,7 +215,55 @@ For this question we shall define a rainy day as a day with precipitation betwee
 
 1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM. Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'
 
+```
+STEP 1. All trips from Midtown to Downtown
+
+CREATE TABLE trips_from_midtown_to_downtown_test AS
+WITH midtown_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Midtown-Midtown South' or ntaname = 'Turtle Bay-East Midtown'
+), downtown_gids as (
+  select distinct gid
+  from nyct2010
+  where ntaname = 'Battery Park City-Lower Manhattan' or ntaname = 'Lower East Side'
+)
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  EXTRACT(YEAR FROM pickup_datetime) AS year,
+  EXTRACT(DOW FROM pickup_datetime) AS dow,
+  EXTRACT(HOUR FROM pickup_datetime) AS hour,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes
+FROM trips
+WHERE trips.pickup_nyct2010_gid IN (select gid from midtown_gids)
+      AND trips.dropoff_nyct2010_gid IN (select gid from downtown_gids);
+      
+```
+
+
 2. Similar to case 1, but the destination is Midtown, origin from Downtown, and the relevant timeslot is 7PM to 8PM instead.
+
+```
+
+STEP 1. Similar to Case 1, but reverse the where clause.
+
+
+
+```
 
 3. The movie starts at 7PM and we are leaving from home, so for this case we shall compare those with origin Midtown, destination Downtown.
 
