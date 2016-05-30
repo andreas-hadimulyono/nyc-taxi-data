@@ -106,7 +106,7 @@ order by airport_code, hour;
 ```
 
 ``` {r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
-
+```
 
 
 ### 2. BEST TIMESLOT FOR ADS
@@ -119,8 +119,41 @@ You have a mobile gaming startup and based on your research, your prime target a
 
 The ideal timeslot is the time when there are a lot of people in taxis. For this question, we shall use the pickup and dropoff time as a proxy of the number of people that are inside taxis within a timeslot. Thus the dataset for this analysis shall be the all trips originating from and to all the boroughs in Manhattan, grouped by their time. Since we are only interested in the number of people in taxis and not the type (pickup or dropoff) we can add the trip count for both types (pickup and dropoff). We can include Uber rides for this dataset as the dropoff point is not relevant to the question.
 
-
 ```
+
+-- Step 1. Find all the trips originating or ending in Manhattan
+
+CREATE TABLE trips_to_from_manhattan_with_geohash AS
+WITH manhattan_gids as (
+  select distinct gid
+  from nyct2010
+  where boroname = 'Manhattan'
+)
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  EXTRACT(YEAR FROM pickup_datetime) AS year,
+  EXTRACT(DOW FROM pickup_datetime) AS dow,
+  EXTRACT(HOUR FROM pickup_datetime) AS hour,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes,
+  ST_GeoHash(ST_SetSRID(ST_MakePoint(pickup_longitude,pickup_latitude),4326)) AS pickup_geohash,
+  ST_GeoHash(ST_SetSRID(ST_MakePoint(dropoff_longitude,dropoff_latitude),4326)) AS dropoff_geohash
+FROM trips
+WHERE pickup_nyct2010_gid IN (select gid from manhattan_gids)
+  OR dropoff_nyct2010_gid IN (select gid from manhattan_gids);
 ```
 
 ### 3. TOP 5 CITY BLOCKS IN MANHATTAN
