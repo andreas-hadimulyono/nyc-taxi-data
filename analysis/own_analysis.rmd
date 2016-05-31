@@ -551,7 +551,7 @@ GROUP BY weather_indicator;
 ```
 
 
-*Case 5* We shall pick the friend's place as Crown's Heights NOrth suburb, again in Broklyn. We shall arrive at friend's place at or before 3PM on Sunday.
+*Case 5* We shall pick the friend's place as Crown's Heights North suburb, again in Broklyn. We shall arrive at friend's place at or before 3PM on Sunday.
 
 ```
 
@@ -619,7 +619,7 @@ SELECT
     THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
   END AS duration_in_minutes
 FROM trips_from_midtown_to_downtown_test
-WHERE hour = 14 AND dow IN (0);
+WHERE EXTRACT(HOUR FROM dropoff_datetime) = 14 AND dow IN (0);
 
 CREATE INDEX index_trips_from_bayridge_to_crownheights_sunday_14_dropoff_date ON trips_from_bayridge_to_crownheights_sunday_14(dropoff_date);
 
