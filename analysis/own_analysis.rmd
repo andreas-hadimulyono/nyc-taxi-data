@@ -521,7 +521,7 @@ SELECT
     THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
   END AS duration_in_minutes
 FROM trips_from_midtown_to_downtown_test
-WHERE hour = 11 AND dow IN (0);
+WHERE EXTRACT(HOUR FROM dropoff_datetime) = 11 AND dow IN (0);
 
 CREATE INDEX index_trips_from_midtown_to_bayridge_sunday_11_dropoff_date ON trips_from_midtown_to_bayridge_sunday_11(dropoff_date);
 
@@ -547,9 +547,6 @@ SELECT
     stddev(duration_in_minutes) AS sd
 FROM trips_from_midtown_to_bayridge_sunday_11_weather
 GROUP BY weather_indicator;
-    
-
-
 
 ```
 
