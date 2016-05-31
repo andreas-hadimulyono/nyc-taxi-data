@@ -338,11 +338,12 @@ FROM trips_from_midtown_to_downtown_test_weekdays_9 t
     
 STEP 4. Aggregate to find mean and SD of trip duration grouped by weather
 
-SELECT 
+SELECT
     weather_indicator,
     COUNT(*) AS trip_count,
     AVG(duration_in_minutes) AS mean,
-    stddev(duration_in_minutes) AS sd
+    stddev(duration_in_minutes) AS sd,
+    median(duration_in_minutes::numeric) as median
 FROM trips_from_midtown_to_downtown_test_weekdays_9_weather
 GROUP BY weather_indicator;
       
