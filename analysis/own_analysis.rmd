@@ -13,7 +13,6 @@ library(zoo)
 library(scales)
 library(extrafont)
 library(grid)
-library(RPostgreSQL)
 library(rgdal)
 library(maptools)
 gpclibPermit()
@@ -509,7 +508,7 @@ GROUP BY weather_indicator;
 ```
 
 
-5. We shall pick the friend's place as Crown's Heights NOrth suburb, again in Broklyn. We shall leave the parent's place at 2PM.
+5. We shall pick the friend's place as Crown's Heights NOrth suburb, again in Broklyn. We shall arrive at friend's place at or before 3PM on Sunday.
 
 ```
 
@@ -548,6 +547,61 @@ SELECT
 FROM trips
 WHERE trips.pickup_nyct2010_gid IN (select gid from bayridge_gids)
       AND trips.dropoff_nyct2010_gid IN (select gid from crownheights_gids);
+      
+CREATE INDEX index_trips_from_bayridge_to_crownheights_test_dow ON trips_from_bayridge_to_crownheights_test(dow);
+CREATE INDEX index_trips_from_bayridge_to_crownheights_test_hour ON trips_from_bayridge_to_crownheights_test(hour);
+      
+STEP 2. Filter it further to just Sunday with dropoff hour 15, and get the date to be joined later
+
+CREATE TABLE trips_from_bayridge_to_crownheights_sunday_14 AS
+SELECT
+  id,
+  cab_type_id,
+  pickup_datetime,
+  dropoff_datetime,
+  pickup_longitude,
+  pickup_latitude,
+  dropoff_longitude,
+  dropoff_latitude,
+  total_amount,
+  payment_type,
+  pickup_nyct2010_gid,
+  dropoff_nyct2010_gid,
+  year,
+  dow,
+  hour,
+  date(dropoff_datetime) AS dropoff_date,
+  CASE
+    WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
+    THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
+  END AS duration_in_minutes
+FROM trips_from_midtown_to_downtown_test
+WHERE hour = 14 AND dow IN (0);
+
+CREATE INDEX index_trips_from_bayridge_to_crownheights_sunday_14_dropoff_date ON trips_from_bayridge_to_crownheights_sunday_14(dropoff_date);
+
+STEP 3. JOIN with central_park_weather_observation to find rainy/sunny days. 0 = rain, 1 = sunny
+
+CREATE TABLE trips_from_bayridge_to_crownheights_sunday_14_weather AS
+SELECT
+    t.dropoff_date,
+    t.duration_in_minutes,
+    CASE
+        WHEN w.precipitation >= 0.0039 AND w.precipitation <= 0.35 THEN 0
+        ELSE 1
+    END AS weather_indicator
+FROM trips_from_bayridge_to_crownheights_sunday_14 t
+    INNER JOIN central_park_weather_observations w ON t.dropoff_date = w.date;
+    
+STEP 4. Aggregate to find mean and SD of trip duration grouped by weather
+
+SELECT 
+    weather_indicator,
+    COUNT(*) AS trip_count,
+    AVG(duration_in_minutes) AS mean,
+    stddev(duration_in_minutes) AS sd
+FROM trips_from_bayridge_to_crownheights_sunday_14_weather
+GROUP BY weather_indicator;
 
 ```
 
