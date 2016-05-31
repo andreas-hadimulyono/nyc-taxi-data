@@ -252,7 +252,7 @@ Based on your analysis, how much sooner or later would you start your commute fo
 
 For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant. The view `central_park_weather_observation` precipitation column is already converting the unit from raw data to inches.
 
-1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM. Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'.
+1. For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM (extract hour as 9). Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'.
 
 ```
 STEP 1. All trips from Midtown to Downtown
@@ -291,13 +291,12 @@ FROM trips
 WHERE trips.pickup_nyct2010_gid IN (select gid from midtown_gids)
       AND trips.dropoff_nyct2010_gid IN (select gid from downtown_gids);
 
-CREATE INDEX index_trips_from_midtown_to_downtown_dow ON trips_from_midtown_to_downtown_test(dow);
-CREATE INDEX index_trips_from_midtown_to_downtown_hour ON trips_from_midtown_to_downtown_test(hour);
+CREATE INDEX index_trips_from_midtown_to_downtown_test_dow ON trips_from_midtown_to_downtown_test(dow);
+CREATE INDEX index_trips_from_midtown_to_downtown_test_hour ON trips_from_midtown_to_downtown_test(hour);
 
-      
-STEP 2. Filter it further to just weekdays with dropoff hour 9, and get the date to be joined later
+STEP 2. Filter it further to just Weekdays with dropoff hour extract = 9, and get the date to be joined later
 
-CREATE TABLE trips_from_midtown_to_downtown_weekday_9 AS
+CREATE TABLE trips_from_midtown_to_downtown_test_weekdays_9 AS
 SELECT
   id,
   cab_type_id,
@@ -314,29 +313,29 @@ SELECT
   year,
   dow,
   hour,
-  date(dropoff_datetime) AS pickup_date,
+  date(dropoff_datetime) AS dropoff_date,
   CASE
     WHEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60 BETWEEN 0.1 AND 240
     THEN EXTRACT(EPOCH FROM dropoff_datetime - pickup_datetime) / 60
   END AS duration_in_minutes
 FROM trips_from_midtown_to_downtown_test
-WHERE hour = 9 AND dow IN (1,2,3,4,5);
+WHERE EXTRACT(HOUR FROM dropoff_datetime) = 9 AND dow IN (1,2,3,4,5);
 
-CREATE INDEX index_trips_from_midtown_to_downtown_weekday_9_pickup_date ON trips_from_midtown_to_downtown_weekday_9(pickup_date);
+CREATE INDEX index_trips_from_midtown_to_downtown_test_weekdays_9_dropoff_date ON trips_from_midtown_to_downtown_test_weekdays_9(dropoff_date);
 
 STEP 3. JOIN with central_park_weather_observation to find rainy/sunny days. 0 = rain, 1 = sunny
 
-CREATE TABLE trips_from_midtown_to_downtown_weekday_9_weather AS 
-SELECT 
-    t.pickup_date,
+CREATE TABLE trips_from_midtown_to_downtown_test_weekdays_9_weather AS
+SELECT
+    t.dropoff_date,
     t.duration_in_minutes,
     CASE
         WHEN w.precipitation >= 0.0039 AND w.precipitation <= 0.35 THEN 0
         ELSE 1
     END AS weather_indicator
-FROM trips_from_midtown_to_downtown_weekday_9 t
-    INNER JOIN central_park_weather_observation w ON t.pickup_date = w.date;
-
+FROM trips_from_midtown_to_downtown_test_weekdays_9 t
+    INNER JOIN central_park_weather_observations w ON t.dropoff_date = w.date;
+    
 STEP 4. Aggregate to find mean and SD of trip duration grouped by weather
 
 SELECT 
@@ -344,9 +343,9 @@ SELECT
     COUNT(*) AS trip_count,
     AVG(duration_in_minutes) AS mean,
     stddev(duration_in_minutes) AS sd
-FROM trips_from_midtown_to_downtown_weekday_9_weather
+FROM trips_from_midtown_to_downtown_test_weekdays_9_weather
 GROUP BY weather_indicator;
-
+      
       
 ```
 
