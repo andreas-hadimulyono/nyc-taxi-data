@@ -394,7 +394,7 @@ WHERE trips.pickup_nyct2010_gid IN (select gid from downtown_gids)
 CREATE INDEX index_trips_from_downtown_to_midtown_test_dow ON trips_from_downtown_to_midtown_test(dow);
 CREATE INDEX index_trips_from_downtown_to_midtown_test_hour ON trips_from_downtown_to_midtown_test(hour);
 
-STEP 2. Filter it further to just Weekdays with dropoff hour extract = 9, and get the date to be joined later
+STEP 2. Filter it further to just Weekdays with dropoff hour extract = 19, and get the date to be joined later
 
 CREATE TABLE trips_from_downtown_to_midtown_test_weekdays_19 AS
 SELECT
