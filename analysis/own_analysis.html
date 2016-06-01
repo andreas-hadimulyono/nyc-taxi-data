@@ -219,7 +219,7 @@ order by airport_code, hour;
 <p><strong>Question</strong></p>
 <p>You have a mobile gaming startup and based on your research, your prime target audience are people who commute in cabs. You will like to place talk radio ads on radio stations that cab drivers are likely to tune in to in manhattan, what are best timeslots for you to place these ads?</p>
 <p><strong>Answer</strong></p>
-<p>The ideal timeslot is the time when there are a lot of people in taxis. For this question, we shall use the pickup time as a proxy of the number of people that are in Manhattan within a timeslot. Thus the dataset for this analysis shall be the all trips originating from all the boroughs in Manhattan, grouped by their time. We can include Uber rides for this dataset as we’re only looking at the pickup location.</p>
+<p>The ideal timeslot is the time when there are a lot of people in taxis. For this question, we shall use the pickup time as a proxy of the number of people that are in Manhattan within a timeslot. Thus the dataset for this analysis shall be the all trips originating from all the boroughs in Manhattan, grouped by their time.</p>
 <pre><code>
 -- Step 1. Find all the trips originating in Manhattan
 
@@ -765,7 +765,7 @@ WHERE trips.pickup_nyct2010_gid IN (select gid from bayridge_gids)
 CREATE INDEX index_trips_from_bayridge_to_crownheights_test_dow ON trips_from_bayridge_to_crownheights_test(dow);
 CREATE INDEX index_trips_from_bayridge_to_crownheights_test_hour ON trips_from_bayridge_to_crownheights_test(hour);
       
-STEP 2. Filter it further to just Sunday with dropoff hour 15, and get the date to be joined later
+STEP 2. Filter it further to just Sunday with dropoff hour 14, and get the date to be joined later
 
 CREATE TABLE trips_from_bayridge_to_crownheights_sunday_14 AS
 SELECT
