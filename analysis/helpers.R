@@ -11,8 +11,8 @@ if (all(c("Open Sans", "PT Sans") %in% fonts())) {
   title_font_family = "Arial"
 }
 
-con = dbConnect(dbDriver("PostgreSQL"), dbname = "nyc-taxi-data", host = "localhost")
-query = function(sql) { fetch(dbSendQuery(con, sql), n = 1e8) }
+#con = dbConnect(dbDriver("PostgreSQL"), dbname = "nyc-taxi-data", host = "localhost")
+#query = function(sql) { fetch(dbSendQuery(con, sql), n = 1e8) }
 
 add_credits = function(fontsize = 12, color = "#777777", xpos = 0.99) {
   grid.text("toddwschneider.com",

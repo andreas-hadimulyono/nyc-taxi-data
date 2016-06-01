@@ -299,7 +299,7 @@ Based on your analysis, how much sooner or later would you start your commute fo
 
 **Answer**
 
-For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference and if they are statistically significant. The view `central_park_weather_observation` precipitation column is already converting the unit from raw data to inches.
+For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference. The view `central_park_weather_observation` precipitation column is already converting the unit from raw data to inches.
 
 *Case 1* For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM (extract hour as 9). Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'.
 
@@ -396,9 +396,19 @@ SELECT
 FROM trips_from_midtown_to_downtown_test_weekdays_9_weather
 GROUP BY weather_indicator;
       
-      
 ```
 
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+data4.1 <- read.csv("4-1.csv")
+```
+
+The difference is shown below:
+
+``` {r, warning=FALSE, echo=FALSE}
+data4.1
+```
+
+All three measures (mean, median, and standard deviation) are very close between rainy days and sunny days, so it seems there is no difference in trip duration between them.
 
 *Case 2* Similar to case 1, but the destination is Midtown, origin from Downtown, and the relevant timeslot is weekdays 7PM to 8PM instead.
 
