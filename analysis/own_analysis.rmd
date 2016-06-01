@@ -227,6 +227,19 @@ GROUP BY hour;
 
 ```
 
+The plot below shows the number of pickups by the hour in Manhattan.
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+data2 <- read.csv("manhattan_pickup_summary_hourly.csv")
+data2$timestamp_for_x_axis <- as.POSIXct(data2$hour * 3600, origin = "1970-01-01", tz="UTC")
+
+p2 <- ggplot(data=data2, aes(x=timestamp_for_x_axis, y=pickup_count, label=pickup_count)) + geom_line() + scale_x_datetime("", date_breaks = "2 hours", labels = date_format("%l %p")) + scale_y_continuous("Number of Pickups") + ggtitle("Number of Pickups in Manhattan by the Hour") + geom_text(size = 2, nudge_y = -2)
+print(p2)
+
+```
+
+The peak of pickups is observed at 7PM, so 7-8PM timeslot seems to be a good time to put out an ad.
+
 ### 3. TOP 5 CITY BLOCKS IN MANHATTAN
 
 **Question**
@@ -249,6 +262,21 @@ GROUP BY pickup_geohash;
 
 
 ```
+
+The bar plot below shows the top 10 number of pickups in Manhattan grouped by its geohashes:
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+data3 <- read.csv("manhattan_pickup_summary_geohash.csv")
+data3_top10 <- (data3 %>% arrange(desc(pickup_count)))[1:10,]
+data3_top10$pickup_geohash <- factor(data3_top10$pickup_geohash, levels=rev(data3_top10$pickup_geohash))
+
+p3 <- ggplot(data = data3_top10, aes(x=pickup_geohash, y=pickup_count, fill=pickup_geohash)) + geom_bar(stat="identity") + xlab("Geohash") + ylab("Number of Pickups") + ggtitle("Top 10 Number of Pickups in Manhattan by Geohash") + coord_flip()
+print(p3)
+
+
+```
+
+The top 5 number of pickups are geohashes dr5rus, dr5rud, dr5ru7, dr5ru6, and dr5rue. It would then make sense to put up the ads in those blocks.
 
 
 ### 4. WEATHER FORECASTS
