@@ -523,10 +523,40 @@ SELECT
     AVG(duration_in_minutes) AS mean,
     stddev(duration_in_minutes) AS sd
 FROM trips_from_downtown_to_midtown_test_weekdays_19_weather
-GROUP BY weather_indicator;
+GROUP BY weather_indicator; -- summary
 
+SELECT *
+FROM trips_from_downtown_to_midtown_test_weekdays_19_weather; -- raw data
 
 ```
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+data4.2 <- read.csv("4-2.csv")
+data4.2b <- read.csv("4-2b.csv")
+data4.2b$weather_indicator <- as.factor(data4.2b$weather_indicator)
+```
+
+The difference is shown below:
+
+``` {r, warning=FALSE, echo=FALSE}
+data4.2
+```
+
+All three measures (mean, median, and standard deviation) are very close between rainy days and sunny days, so it seems there is no difference in trip duration between them. Let's look at the distribution of the data:
+
+``` {r, warning=FALSE, echo=FALSE}
+p4.2 <- ggplot(data=data4.2b, aes(x=duration_in_minutes, fill=weather_indicator)) + geom_density(alpha=.2) + scale_x_continuous(limit=c(0,50)) + ylab("") + ggtitle("Distribution of Trip Duration")
+print(p4.2)
+```
+
+The distribution between the two groups is also very similar. It looks like the distribution is close to normal distribution, so we can try applying the t-test with the two distribution.
+
+``` {r, echo=FALSE, cache=TRUE}
+t.test(data4.2b$duration_in_minutes ~ data4.2b$weather_indicator)
+```
+
+In this case, the t-test indicates that the mean trip duration between the two groups are likely to be equal.
+
 
 *Case 3* The movie starts at 7PM (need to arrive before 7PM, so extract hour = 18) and we are leaving from home, so for this case we shall compare those with origin Midtown, destination Downtown. Similar to case 1, but this time we are looking at Satudays of week days.
 
@@ -582,9 +612,40 @@ SELECT
     AVG(duration_in_minutes) AS mean,
     stddev(duration_in_minutes) AS sd
 FROM trips_from_midtown_to_downtown_test_saturday_18_weather
-GROUP BY weather_indicator;
+GROUP BY weather_indicator; -- summary
+
+SELECT *
+FROM trips_from_midtown_to_downtown_test_saturday_18_weather; -- raw data
       
 ```
+
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+data4.3 <- read.csv("4-3.csv")
+data4.3b <- read.csv("4-3b.csv")
+data4.3b$weather_indicator <- as.factor(data4.3b$weather_indicator)
+```
+
+The difference is shown below:
+
+``` {r, warning=FALSE, echo=FALSE}
+data4.3
+```
+
+All three measures (mean, median, and standard deviation) are very close between rainy days and sunny days, so it seems there is no difference in trip duration between them. Let's look at the distribution of the data:
+
+``` {r, warning=FALSE, echo=FALSE}
+p4.3 <- ggplot(data=data4.3b, aes(x=duration_in_minutes, fill=weather_indicator)) + geom_density(alpha=.2) + scale_x_continuous(limit=c(0,50)) + ylab("") + ggtitle("Distribution of Trip Duration")
+print(p4.3)
+```
+
+The distribution between the two groups is also very similar. It looks like the distribution is close to normal distribution, so we can try applying the t-test with the two distribution.
+
+``` {r, echo=FALSE, cache=TRUE}
+t.test(data4.3b$duration_in_minutes ~ data4.3b$weather_indicator)
+```
+
+In this case, the t-test indicates that the mean trip duration between the two groups are likely to be equal.
 
 
 *Case 4* We shall pick a suburb Bay Ridge, Brooklyn as the destination this time, and the relevant timeslot is 11AM - 12PM on Sunday.
@@ -681,9 +742,39 @@ SELECT
     AVG(duration_in_minutes) AS mean,
     stddev(duration_in_minutes) AS sd
 FROM trips_from_midtown_to_bayridge_sunday_11_weather
-GROUP BY weather_indicator;
+GROUP BY weather_indicator; -- summary
+
+SELECT *
+FROM trips_from_midtown_to_bayridge_sunday_11_weather; -- raw data
 
 ```
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+data4.4 <- read.csv("4-4.csv")
+data4.4b <- read.csv("4-4b.csv")
+data4.4b$weather_indicator <- as.factor(data4.4b$weather_indicator)
+```
+
+The difference is shown below:
+
+``` {r, warning=FALSE, echo=FALSE}
+data4.4
+```
+
+All three measures (mean, median, and standard deviation) are very close between rainy days and sunny days, so it seems there is no difference in trip duration between them. Let's look at the distribution of the data:
+
+``` {r, warning=FALSE, echo=FALSE}
+p4.4 <- ggplot(data=data4.4b, aes(x=duration_in_minutes, fill=weather_indicator)) + geom_density(alpha=.2) + scale_x_continuous(limit=c(0,50)) + ylab("") + ggtitle("Distribution of Trip Duration")
+print(p4.4)
+```
+
+The distribution between the two groups is also very similar. It looks like the distribution is close to normal distribution, so we can try applying the t-test with the two distribution.
+
+``` {r, echo=FALSE, cache=TRUE}
+t.test(data4.4b$duration_in_minutes ~ data4.4b$weather_indicator)
+```
+
+For Case 4 again the t-test indicates that the mean between two groups are likely to be not equal, however the difference is negligible so we should not need to adjust our departure time.
 
 
 *Case 5* We shall pick the friend's place as Crown's Heights North suburb, again in Broklyn. We shall arrive at friend's place at or before 3PM on Sunday.
@@ -729,7 +820,7 @@ WHERE trips.pickup_nyct2010_gid IN (select gid from bayridge_gids)
 CREATE INDEX index_trips_from_bayridge_to_crownheights_test_dow ON trips_from_bayridge_to_crownheights_test(dow);
 CREATE INDEX index_trips_from_bayridge_to_crownheights_test_hour ON trips_from_bayridge_to_crownheights_test(hour);
       
-STEP 2. Filter it further to just Sunday with dropoff hour 15, and get the date to be joined later
+STEP 2. Filter it further to just Sunday with dropoff hour 14, and get the date to be joined later
 
 CREATE TABLE trips_from_bayridge_to_crownheights_sunday_14 AS
 SELECT
@@ -779,8 +870,36 @@ SELECT
     AVG(duration_in_minutes) AS mean,
     stddev(duration_in_minutes) AS sd
 FROM trips_from_bayridge_to_crownheights_sunday_14_weather
-GROUP BY weather_indicator;
+GROUP BY weather_indicator; -- summary
+
+SELECT *
+FROM trips_from_bayridge_to_crownheights_sunday_14_weather; -- raw data
 
 ```
 
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
+data4.5 <- read.csv("4-5.csv")
+data4.5b <- read.csv("4-5b.csv")
+data4.5b$weather_indicator <- as.factor(data4.5b$weather_indicator)
+```
 
+The difference is shown below:
+
+``` {r, warning=FALSE, echo=FALSE}
+data4.5
+```
+
+All three measures (mean, median, and standard deviation) are very close between rainy days and sunny days, so it seems there is no difference in trip duration between them. Let's look at the distribution of the data:
+
+``` {r, warning=FALSE, echo=FALSE}
+p4.5 <- ggplot(data=data4.5b, aes(x=duration_in_minutes, fill=weather_indicator)) + geom_density(alpha=.2) + scale_x_continuous(limit=c(0,50)) + ylab("") + ggtitle("Distribution of Trip Duration")
+print(p4.5)
+```
+
+The distribution between the two groups is also very similar. It looks like the distribution is close to normal distribution, so we can try applying the t-test with the two distribution.
+
+``` {r, echo=FALSE, cache=TRUE}
+t.test(data4.5b$duration_in_minutes ~ data4.5b$weather_indicator)
+```
+
+For Case 4 again the t-test indicates that the mean between two groups are likely to be not equal, however the difference is negligible so we should not need to adjust our departure time.
