@@ -1,0 +1,11 @@
+base
+ggplot2
+ggmap
+dplyr
+reshape2
+zoo
+scales
+extrafont
+sp
+rgdal
+maptools

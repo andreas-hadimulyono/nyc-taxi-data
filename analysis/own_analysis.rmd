@@ -301,7 +301,7 @@ Based on your analysis, how much sooner or later would you start your commute fo
 
 For this question we shall define a rainy day as a day with precipitation between 0.0039 inches and 0.35 inches. We shall then separate the data between rainy day and non-rainy day for each of the cases in this question and determine how much is the difference. The view `central_park_weather_observation` precipitation column is already converting the unit from raw data to inches.
 
-*Case 1* For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM (extract hour as 9). Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'.
+*Case 1*: For this case, we shall compare the duration of taxi rides to Downtown from home (Midtown) between rainy days and non-rainy days. We are only interested for trips that reaches Downtown before 10AM (extract hour as 9). Downtown is also known as Lower Manhattan, and thus we're interested in trips originating from 'Lower East Side' and 'Battery Park City-Lower Manhattan'.
 
 ```
 STEP 1. All trips from Midtown to Downtown
@@ -394,12 +394,17 @@ SELECT
     stddev(duration_in_minutes) AS sd,
     median(duration_in_minutes::numeric) as median
 FROM trips_from_midtown_to_downtown_test_weekdays_9_weather
-GROUP BY weather_indicator;
+GROUP BY weather_indicator; -- summary
+
+SELECT *
+FROM trips_from_midtown_to_downtown_test_weekdays_9_weather; -- raw data
       
 ```
 
-``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+``` {r, echo=FALSE, warning=FALSE, message=FALSE, cache=TRUE}
 data4.1 <- read.csv("4-1.csv")
+data4.1b <- read.csv("4-1b.csv")
+data4.1b$weather_indicator <- as.factor(data4.1b$weather_indicator)
 ```
 
 The difference is shown below:
@@ -408,9 +413,22 @@ The difference is shown below:
 data4.1
 ```
 
-All three measures (mean, median, and standard deviation) are very close between rainy days and sunny days, so it seems there is no difference in trip duration between them.
+All three measures (mean, median, and standard deviation) are very close between rainy days and sunny days, so it seems there is no difference in trip duration between them. Let's look at the distribution of the data:
 
-*Case 2* Similar to case 1, but the destination is Midtown, origin from Downtown, and the relevant timeslot is weekdays 7PM to 8PM instead.
+``` {r, warning=FALSE, echo=FALSE}
+p4.1 <- ggplot(data=data4.1b, aes(x=duration_in_minutes, fill=weather_indicator)) + geom_density(alpha=.2) + scale_x_continuous(limit=c(0,50)) + ylab("") + ggtitle("Distribution of Trip Duration")
+print(p4.1)
+```
+
+The distribution between the two groups is also very similar. It looks like the distribution is close to normal distribution, so we can try applying the t-test with the two distribution.
+
+``` {r, echo=FALSE, cache=TRUE}
+t.test(data4.1b$duration_in_minutes ~ data4.1b$weather_indicator)
+```
+
+Surprisingly the t-test indicates that the mean in the two groups are likely to be not equal. However the difference in mean is very small so for the purpose of adjusting our budgeted trip duration, the difference is not likely to be significant.
+
+*Case 2*: Similar to case 1, but the destination is Midtown, origin from Downtown, and the relevant timeslot is weekdays 7PM to 8PM instead.
 
 ```
 
