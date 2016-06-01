@@ -75,8 +75,6 @@ The dataset will be the all trips originating from Midtown boroughs, and ending 
 
 As the question is interested in weekend getaways, the datasets shall be filtered only for Fridays, and then eventually grouped by the pickup hour.
 
-The caveat for this analysis is as the Uber trips do not have the destination latitude/longitude, they will not be part of the dataset.
-
 ```
 -- Step 1. Find all the trips ending in LGA, JFK, or EWR
 
@@ -143,12 +141,35 @@ order by airport_code, hour;
 
 ```
 
+Assuming that the flight duration and the time spent at each airport is the same, the only factor that minimizes the travel is then the time it takes to go to the airport. The median duration of trip of the three airports is shown below:
 
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
 
+data1.1 <- read.csv("midtown_to_airports_friday_summary_daily.csv")
+p1.1 <- ggplot(data = data1.1, aes(x=airport_code, y=median, fill=airport_code)) + geom_bar(stat="identity") + xlab("Airport") + ylab("Median Trip Duration in Minutes") + ggtitle("Median Trip Duration to Airports")
+print(p1.1)
 
-``` {r, echo=FALSE, warning=FALSE, message=FALSE, include=FALSE}
 ```
 
+As the trip to LGA airport generally takes the least amount of time, using LGA will minimize the time taken to reach Las Vegas.
+
+The three plots below describes the median duration of trip for each hour to the three different airports.
+
+``` {r, echo=FALSE, warning=FALSE, message=FALSE}
+
+data1.2 <- read.csv("midtown_to_airports_friday_summary_hourly.csv")
+data1.2$median = round(data1.2$median, digits=2)
+data1.2$timestamp_for_x_axis <- as.POSIXct(data1.2$hour * 3600, origin = "1970-01-01", tz="UTC")
+p1.2.1 <- ggplot(data=data1.2[data1.2$airport_code=="LGA",], aes(x=timestamp_for_x_axis, y=median, label=median)) + geom_line() + geom_point() + expand_limits(y=0) + scale_x_datetime("", date_breaks = "2 hours", labels = date_format("%l %p")) + scale_y_continuous("trip duration in minutes\n") + ggtitle("Median trip duration to LGA in minutes") + geom_text(size = 2, nudge_y = -2)
+print(p1.2.1)
+p1.2.2 <- ggplot(data=data1.2[data1.2$airport_code=="JFK",], aes(x=timestamp_for_x_axis, y=median, label=median)) + geom_line() + geom_point() + expand_limits(y=0) + scale_x_datetime("", date_breaks = "2 hours", labels = date_format("%l %p")) + scale_y_continuous("trip duration in minutes\n") + ggtitle("Median trip duration to JFK in minutes") + geom_text(size = 2, nudge_y = -2)
+print(p1.2.2)
+p1.2.3 <- ggplot(data=data1.2[data1.2$airport_code=="EWR",], aes(x=timestamp_for_x_axis, y=median, label=median)) + geom_line() + geom_point() + expand_limits(y=0) + scale_x_datetime("", date_breaks = "2 hours", labels = date_format("%l %p")) + scale_y_continuous("trip duration in minutes\n") + ggtitle("Median trip duration to EWR in minutes") + geom_text(size = 2, nudge_y = -2)
+print(p1.2.3)
+
+```
+
+The least amount of travel time is again going to LGA at 11PM.
 
 ### 2. BEST TIMESLOT FOR ADS
 
