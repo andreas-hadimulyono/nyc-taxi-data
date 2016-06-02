@@ -878,4 +878,4 @@ The distribution between the two groups is also very similar. It looks like the 
 t.test(data4.5b$duration_in_minutes ~ data4.5b$weather_indicator)
 ```
 
-For Case 4 again the t-test indicates that the mean between two groups are likely to be not equal, however the difference is negligible so we should not need to adjust our departure time.
+For Case 5 again the t-test indicates that the mean between two groups are likely to be not equal, however the difference is negligible so we should not need to adjust our departure time.
